@@ -11,7 +11,10 @@ libraryDependencies ++= {
       exclude ("org.scala-lang" , "scala-library"),
     "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
       exclude ("org.scala-lang" , "scala-library"),
-    "org.scalatest"       %   "scalatest_2.10" % "2.1.7" % "test"
+    "com.google.inject" % "guice" % "4.0-beta4",
+    "net.codingwell" %% "scala-guice" % "4.0.0-beta"
+      exclude ("org.scala-lang" , "scala-library"),
+    "org.scalatest" % "scalatest_2.10" % "2.1.7" % "test"
       exclude ("org.scala-lang" , "scala-reflect")
   )
 }
