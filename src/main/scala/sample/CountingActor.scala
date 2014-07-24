@@ -1,8 +1,10 @@
 package sample
 
-import akka.actor.Actor
+import akka.actor.{ActorRef, Actor}
 import akkaguice.NamedActor
 import javax.inject.Inject
+
+import com.google.inject.name.Named
 
 object CountingActor extends NamedActor {
 
@@ -21,7 +23,7 @@ object CountingActor extends NamedActor {
  *   "prototype" scope i.e. a new Actor will be created whenever a request is made for this dependency
  *   from Guice.
  */
-class CountingActor @Inject() (countingService: CountingService) extends Actor {
+class CountingActor @Inject() (countingService: CountingService, @Named("AuditCompanion") auditCompanion: ActorRef) extends Actor {
 
   import CountingActor._
 
@@ -30,6 +32,7 @@ class CountingActor @Inject() (countingService: CountingService) extends Actor {
   def receive = {
     case Count =>
       count = countingService.increment(count)
+      auditCompanion ! s"Count is now $count"
     case Get => sender ! count
   }
 

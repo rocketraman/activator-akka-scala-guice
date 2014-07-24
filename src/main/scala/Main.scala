@@ -5,7 +5,7 @@ import com.google.inject.Guice
 import config.ConfigModule
 import net.codingwell.scalaguice.InjectorExtensions._
 import sample.CountingActor.{Get, Count}
-import sample.{CountingActor, SampleModule}
+import sample.{AuditModule, CountingActor, SampleModule}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -17,7 +17,8 @@ object Main extends App {
   val injector = Guice.createInjector(
     new ConfigModule(),
     new AkkaModule(),
-    new SampleModule()
+    new SampleModule(),
+    new AuditModule()
   )
 
   val system = injector.instance[ActorSystem]
@@ -30,6 +31,10 @@ object Main extends App {
   counter ! Count
   counter ! Count
   counter ! Count
+
+  val counter2 = system.actorOf(GuiceAkkaExtension(system).props(CountingActor.name))
+  counter2 ! Count
+  counter2 ! Count
 
   // print the result
   val duration = 3.seconds

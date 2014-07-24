@@ -15,7 +15,9 @@ libraryDependencies ++= {
     "net.codingwell" %% "scala-guice" % "4.0.0-beta"
       exclude ("org.scala-lang" , "scala-library"),
     "org.scalatest" % "scalatest_2.10" % "2.1.7" % "test"
-      exclude ("org.scala-lang" , "scala-reflect")
+      exclude ("org.scala-lang" , "scala-reflect"),
+    "com.typesafe.akka" %% "akka-testkit" % akkaVersion
+      exclude ("org.scala-lang" , "scala-library") % "test"
   )
 }
 
