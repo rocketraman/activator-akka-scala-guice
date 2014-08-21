@@ -1,12 +1,13 @@
 import akka.actor.ActorSystem
 import akka.pattern.ask
-import akkaguice.{GuiceAkkaExtension, AkkaModule}
+import akkaguice.{AkkaModule, GuiceAkkaExtension}
 import com.google.inject.Guice
 import config.ConfigModule
 import net.codingwell.scalaguice.InjectorExtensions._
-import sample.CountingActor.{Get, Count}
+import sample.CountingActor.{Count, Get}
 import sample.{AuditModule, CountingActor, SampleModule}
-import scala.concurrent.Await
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 /**
@@ -17,8 +18,8 @@ object Main extends App {
   val injector = Guice.createInjector(
     new ConfigModule(),
     new AkkaModule(),
-    new SampleModule(),
-    new AuditModule()
+    new AuditModule(),
+    new SampleModule()
   )
 
   val system = injector.instance[ActorSystem]
@@ -32,24 +33,22 @@ object Main extends App {
   counter ! Count
   counter ! Count
 
+  // Create a second counter to demonstrate that `AuditCompanion` is injected under Prototype
+  // scope, which means that every `CountingActor` will get its own instance of `AuditCompanion`.
+  // However `AuditBus` is injected under Singleton scope. Therefore every `AuditCompanion`
+  // will get a reference to the same `AuditBus`.
   val counter2 = system.actorOf(GuiceAkkaExtension(system).props(CountingActor.name))
   counter2 ! Count
   counter2 ! Count
 
   // print the result
-  val duration = 3.seconds
-  val result = counter.ask(Get)(duration).mapTo[Int]
-  try {
-    println(s"Got back ${Await.result(result, duration)}")
-  }
-  catch {
-    case e: Exception =>
-      Console.err.println(s"Failed getting result: ${e.getMessage}")
-      throw e
-  }
-  finally {
-    system.shutdown()
-    system.awaitTermination()
+  for {
+    actor <- Seq(counter, counter2)
+    result <- actor.ask(Get)(3.seconds).mapTo[Int]
+  } {
+    println(s"Got back $result from $counter")
   }
 
+  system.shutdown()
+  system.awaitTermination()
 }

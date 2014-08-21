@@ -27,7 +27,7 @@ class AuditModule extends AbstractModule with ScalaModule {
   @Provides
   @Singleton
   @Audit
-  def provideAuditRef(@Inject() system: ActorSystem): ActorRef = provideActorRef(system, AuditBus.name)
+  def provideAuditBusRef(@Inject() system: ActorSystem): ActorRef = provideActorRef(system, AuditBus.name)
 
   private def provideActorRef(system: ActorSystem, name: String): ActorRef = {
     system.actorOf(GuiceAkkaExtension(system).props(name))
