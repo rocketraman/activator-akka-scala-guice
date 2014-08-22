@@ -7,7 +7,7 @@ import javax.inject.Singleton
 import net.codingwell.scalaguice.InjectorExtensions._
 import net.codingwell.scalaguice.ScalaModule
 import org.scalatest.{Matchers, FlatSpec}
-import sample.{CountingService, CountingActor, SampleModule}
+import sample.{AuditModule, CountingService, CountingActor, SampleModule}
 import sample.CountingActor.{Get, Count}
 import scala.concurrent.duration._
 import scala.concurrent.Await
@@ -18,7 +18,8 @@ class GuiceTest extends FlatSpec with Matchers {
     val injector = Guice.createInjector(
       new ConfigModule(),
       new AkkaModule(),
-      new SampleModule()
+      new SampleModule(),
+      new AuditModule()
     )
 
     val system = injector.instance[ActorSystem]
