@@ -15,13 +15,20 @@
 
   <h2> Application Overview</h2>
 
-  <p>The application basically consist of a single actor defined in the
+  <p>The application consist of an actor defined in the
     <a href="#code/src/main/scala/sample/CountingActor.scala" class="shortcut">
     CountingActor.scala</a>
     file. This actor uses a service defined in the <a href="#code/src/main/scala/sample/CountingService.scala"
     class="shortcut">CountingService.scala</a> file to increment a
-    value. The <code>CountingService</code> is wired into the Actor via Guice.
+    value. <code>CountingService</code> also uses
+      <code>AuditCompanion</code> actor which in turn uses <code>AuditBus</code> actor. Audit actors are defined in the
+      <a href="#code/src/main/scala/sample/Audit.scala" class="shortcut">
+          Audit.scala</a> file.
+      Service and actor dependencies are wired via Guice.
   </p>
+
+  <p>Note that <code>ActorRef</code>s are injected using top-level actors. This should be used sparingly to wire-up
+  only top level components.</p>
 
   <p>To drive the actor, there is a application defined in the
     <a href="#code/src/main/scala/Main.scala" class="shortcut">
@@ -29,8 +36,8 @@
     <ul>
       <li>Initializes Guice</li>
       <li>Obtains the actor system from Guice</li>
-      <li>Creates a <code>CountingActor</code> via the Guice extension</li>
-      <li>Sends a couple of messages to the actor so that it uses the
+      <li>Creates two <code>CountingActor</code> instances via the Guice extension to demonstrate <code>ActorRef</code> injection scopes</li>
+      <li>Sends a couple of messages to the actors so that it uses the
         <code>CountingService</code></li>
     </ul>
   </p>
@@ -42,7 +49,10 @@
     <a href="#run" class="shortcut">Run</a> tab. On the left-hand side we can
     see the console output, which is "Got back 3" for the
     <a href="#code/src/main/scala/Main.scala" class="shortcut"> Main.scala
-    </a> application.
+    </a> application. You can also see output of the <code>AuditBus</code> actor,
+    which demonstrates that <code>AuditBus</code> actor is created in <code>Singleton</code>
+    scope and <code>AuditCompanion</code> is created every time new <code>CountingActor</code> is
+    instantiated.
   </p>
 
   <h2> Running the Test</h2>
@@ -115,12 +125,23 @@
   <p>To tie everything together, we have a Guice injector defined in the
     <a href="#code/src/main/scala/Main.scala" class="shortcut">
     Main.scala</a> file. The injector references the various pieces of the
-    application: 1) a <a href="#code/src/main/scala/config/ConfigModule.scala" class="shortcut">
-    ConfigModule.scala</a> to inject a Typesafe Config object where necessary,
-    2) an <a href="#code/src/main/scala/akkaguice/AkkaModule.scala" class="shortcut">
-    AkkaModule.scala</a> to create an ActorSystem and initialize the Guice
-    extension, and 3) a <a href="#code/src/main/scala/sample/SampleModule.scala" class="shortcut">
-    SampleModule.scala</a> to bind the sample counting actor and service.
+    application:
+    <ol>
+      <li>a <a href="#code/src/main/scala/config/ConfigModule.scala" class="shortcut">
+          ConfigModule.scala</a> to inject a Typesafe Config object where necessary,
+      </li>
+      <li>an <a href="#code/src/main/scala/akkaguice/AkkaModule.scala" class="shortcut">
+          AkkaModule.scala</a> to create an ActorSystem and initialize the Guice
+          extension,
+      </li>
+      <li>a <a href="#code/src/main/scala/sample/SampleModule.scala" class="shortcut">
+          SampleModule.scala</a> to bind the sample counting actor and service.
+      </li>
+        <li>and a <a href="#code/src/main/scala/sample/AuditModule.scala" class="shortcut">
+            AuditModule.scala</a> to bind the <code>ActorRef</code> of Audit actors.
+        </li>
+    </ol>
+
   </p>
 
   <p>The <code>AkkaModule</code> has a <code>ActorSystemProvider</code> that
