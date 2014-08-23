@@ -20,11 +20,10 @@
     CountingActor.scala</a>
     file. This actor uses a service defined in the <a href="#code/src/main/scala/sample/CountingService.scala"
     class="shortcut">CountingService.scala</a> file to increment a
-    value. <code>CountingService</code> also uses
-      <code>AuditCompanion</code> actor which in turn uses <code>AuditBus</code> actor. Audit actors are defined in the
-      <a href="#code/src/main/scala/sample/Audit.scala" class="shortcut">
-          Audit.scala</a> file.
-      Service and actor dependencies are wired via Guice.
+    value. <code>CountingService</code> also uses <code>AuditCompanion</code> actor which in turn uses
+    <code>AuditBus</code> actor. Audit actors are defined in the
+    <a href="#code/src/main/scala/sample/Audit.scala" class="shortcut"> Audit.scala</a> file.
+    Service and actor dependencies are wired via Guice.
   </p>
 
   <p>Note that <code>ActorRef</code>s are injected using top-level actors. This should be used sparingly to wire-up
@@ -55,17 +54,17 @@
     instantiated.
   </p>
 
-  <h2> Running the Test</h2>
+  <h2>Running the Test</h2>
 
   <p>There is also a ScalaTest test for the <code>CountingActor</code> located in
-    the <a href="#code/src/test/scala/GuiceTest.scala" class="shortcut">
-    GuiceTest.scala</a> file. It is structured in the same way as
+    the <a href="#code/src/test/scala/CountingActorSpec.scala" class="shortcut">
+    CountingActorSpec.scala</a> file. It is structured in the same way as
     the <code>Main</code> application.
   </p>
 
-  <p>The result of running the <code>GuiceTest</code> test is shown in the
+  <p>The result of running the <code>CountingActorSpec</code> test is shown in the
     <a href="#test" class="shortcut">Test</a> tab. On the left-hand side we can
-    see the console output, which is "passed GuiceTest".
+    see the console output, which is "passed CountingActorSpec".
   </p>
 </div>
 <div>
@@ -155,40 +154,15 @@
   </p>
 </div>
 <div>
-  <h2>Creating a Test Counting Service</h2>
+  <h2>Testing the Counting Service</h2>
 
-  <p>Since we want to be able to test our actor thoroughly, let's create a test
+  <p>Since we want to be able to test our actor thoroughly, let's use a test
     counting service. In our tutorial it will just wrap the real counting
     service and do some extra book keeping, but it could just as easily be a
     complete mock of the service.
   </p>
 
-  <p>Open the empty <a href="#code/src/test/scala/TestCountingService.scala" class="shortcut">
-    TestCountingService.scala</a> file, and add the code below.
-    <strong>Remember to save the file afterwards.</strong>
-<pre><code>
-import com.typesafe.config.Config
-import java.util.concurrent.atomic.AtomicInteger
-import javax.inject.Inject
-import sample.CountingService
-
-class TestCountingService @Inject() (config: Config) extends CountingService(config) {
-  private val called = new AtomicInteger(0)
-
-  override def increment(count: Int) = {
-    called.incrementAndGet()
-    super.increment(count)
-  }
-
-  def getNumberOfCalls: Int = called.get()
-}
-</code></pre>
-  </p>
-</div>
-<div>
-  <h2>A Closer Look at the Test Counting Service</h2>
-
-  <p>Lets take a closer look at the newly created test counting service in the
+  <p>Lets take a closer look at the test counting service in the
     file <a href="#code/src/test/scala/TestCountingService.scala" class="shortcut">
     TestCountingService.scala</a>
   </p>
@@ -204,49 +178,20 @@ class TestCountingService @Inject() (config: Config) extends CountingService(con
     returns the value of the internal counter <code>called</code> that can be
     used during testing to verify how the service is being used by the actor.
   </p>
-</div>
-<div>
-  <h2>Wire up the Test Counting Service</h2>
 
-  <p>Now that you have created a test counting service it is time to start using
-    it in the test.
-  </p>
+  <p>Open the <a href="#code/src/test/scala/CountingActorSpec.scala" class="shortcut">
+    CountingActorSpec.scala</a> file. At line 55, a test module that
+    binds the <code>TestCountingService</code> to <code>CountingService</code> is added
+    to our Guice configuration. The <code>TestCountingService</code> is defined in
+    Singleton scope so that we can retrieve the same instance in the test as was used
+    by the actor. The injector is created by the test with the basic required modules.
+    Each test can also initialize the injector with the additional modules that may be
+    required for testing.</p>
 
-  <p>Open the <a href="#code/src/test/scala/GuiceTest.scala" class="shortcut">
-    GuiceTest.scala</a> file. And at line 21, right after
-    <code>new SampleModule()</code>, add a comma and a new test module that
-    binds the <code>TestCountingService</code> to <code>CountingService</code>.
-    <strong>Remember to save the file afterwards.</strong>
-<pre><code>
-new AbstractModule with ScalaModule {
-  override def configure() {
-    bind[CountingService].to[TestCountingService].in[Singleton]
-  }
-}
-</code></pre>
-  </p>
-
-  <p>The <code>TestCountingService</code> is defined in Singleton scope so that
-    we can retrieve the same instance in the test as was used by the actor.</p>
-
-  <p>Check that the tests are still green on the <a href="#test" class="shortcut">
-    Test</a> tab.
-  </p>
-
-  <p>We would also like to check that the actor actually called the service the
-    right number of times by using the <code>getNumberOfCalls</code> method.
-    Add the code below to the <a href="#code/src/test/scala/sample/GuiceTest.scala" class="shortcut">
-    GuiceTest.scala</a> file on line 47, just above the comment <code>
-    // shut down the actor system</code>. <strong>Remember to save the file
-    afterwards.</strong>
-<pre><code>// check that it called the TestCountingService the right number of times
-val testService = injector.instance[CountingService].asInstanceOf[TestCountingService]
-testService.getNumberOfCalls should be(3)
-</code></pre>
-  </p>
-
-  <p> Check that the tests are still green on the
-    <a href="#test" class="shortcut">Test</a> tab.
+  <p>The test verifies the right number of calls are made to the test service at line
+    74. It also verifies the audit companion is receiving audit messages at line 89 by
+    mocking out the AuditCompanion actor using a Guice module that injects the
+    TestProbe actor in its place.
   </p>
 </div>
 <div>
@@ -260,8 +205,8 @@ testService.getNumberOfCalls should be(3)
     CountingService.scala</a>, test service
     <a href="#code/src/test/scala/TestCountingService.scala" class="shortcut">
     TestCountingService.scala</a> and test
-    <a href="#code/src/test/scala/GuiceTest.scala" class="shortcut">
-    GuiceTest.scala</a>.
+    <a href="#code/src/test/scala/CountingActorSpec.scala" class="shortcut">
+    CountingActorSpec.scala</a>.
   </p>
 
   <p>The Akka extension <a href="#code/src/main/scala/akkaguice/GuiceAkkaExtension.scala" class="shortcut">

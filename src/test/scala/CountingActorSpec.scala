@@ -1,46 +1,89 @@
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import akka.actor.{ActorRef, ActorSystem}
+import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import akkaguice.{AkkaModule, GuiceAkkaExtension}
+import akkaguice.GuiceAkkaExtension
+import com.google.inject._
 import com.google.inject.name.Named
-import com.google.inject.{AbstractModule, Guice, Provides}
 import config.ConfigModule
 import net.codingwell.scalaguice.InjectorExtensions._
 import net.codingwell.scalaguice.ScalaModule
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import sample.CountingActor.Count
-import sample.{CountingActor, SampleModule}
+import sample.CountingActor.{Count, Get}
+import sample.{AuditModule, CountingActor, CountingService, SampleModule}
+
+import scala.collection.JavaConverters._
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class CountingActorSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike
   with Matchers with BeforeAndAfterAll {
 
   def this() = this(ActorSystem("CountingActorSpec"))
 
-  override def afterAll {
+  override def afterAll() {
     TestKit.shutdownActorSystem(system)
   }
 
-  "a CountingActor" must {
-    "send messages to audit companion" in {
+  trait AkkaGuiceInjector {
+    var injector: Injector = _
 
-      val auditCompanionProbe: TestProbe = new TestProbe(_system)
-
-      val injector = Guice.createInjector(
+    def initInjector(testModules: Module*) = {
+      val modules = List(
         new ConfigModule(),
-        new AkkaModule(),
-        new SampleModule(),
         new AbstractModule with ScalaModule {
           override def configure() { }
-
           @Provides
-          @Named("AuditCompanion")
-          def provideEchoActorRef(@Inject() system: ActorSystem): ActorRef = auditCompanionProbe.ref
+          def provideSystem() = _system
+        },
+        new SampleModule()
+      ) ++ testModules
+
+      injector = Guice.createInjector(modules.asJava)
+      GuiceAkkaExtension(system).initialize(injector)
+    }
+  }
+
+  trait Counter extends AkkaGuiceInjector {
+    // this val must be lazy so that counter is created after the injector is initialized via initInjector
+    lazy val counter = system.actorOf(GuiceAkkaExtension(system).props(CountingActor.name))
+  }
+
+  "a Guice-managed count actor" must {
+    "sends the correct count to its counting service" in new Counter {
+      initInjector(
+        new AuditModule(),
+        new AbstractModule with ScalaModule {
+          override def configure() {
+            bind[CountingService].to[TestCountingService].in[Singleton]
+          }
         }
       )
 
-      val system = injector.instance[ActorSystem]
-      val counter = system.actorOf(GuiceAkkaExtension(system).props(CountingActor.name))
+      // tell it to count three times
+      counter ! Count
+      counter ! Count
+      counter ! Count
+
+      // check that it has counted correctly
+      val duration = 3.seconds
+      val result = counter.ask(Get)(duration).mapTo[Int]
+      Await.result(result, duration) should be (3)
+
+      // check that it called the TestCountingService the right number of times
+      val testService = injector.instance[CountingService].asInstanceOf[TestCountingService]
+      testService.getNumberOfCalls should be(3)
+    }
+
+    "sends messages to its audit companion" in new Counter {
+      val auditCompanionProbe: TestProbe = new TestProbe(_system)
+      initInjector(new AbstractModule with ScalaModule {
+        override def configure() {}
+        @Provides
+        @Named("AuditCompanion")
+        def provideActorRef(@Inject() system: ActorSystem): ActorRef = auditCompanionProbe.ref
+      })
 
       counter ! Count
       auditCompanionProbe.expectMsgClass(classOf[String])
