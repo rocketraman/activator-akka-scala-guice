@@ -10,7 +10,7 @@ object CountingActor extends NamedActor {
 
   // this (and the NamedActor trait) is not required here -- it is simply a convenience so that the name
   // can be defined and referenced from one place
-  override def name = "CountingActor"
+  override final val name = "CountingActor"
 
   case object Count
   case object Get
@@ -23,7 +23,7 @@ object CountingActor extends NamedActor {
  *   "prototype" scope i.e. a new Actor will be created whenever a request is made for this dependency
  *   from Guice.
  */
-class CountingActor @Inject() (countingService: CountingService, @Named("AuditCompanion") auditCompanion: ActorRef) extends Actor {
+class CountingActor @Inject() (countingService: CountingService, @Named(AuditCompanion.name) auditCompanion: ActorRef) extends Actor {
 
   import CountingActor._
 

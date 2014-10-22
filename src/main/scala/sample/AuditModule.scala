@@ -21,7 +21,7 @@ class AuditModule extends AbstractModule with ScalaModule {
   }
 
   @Provides
-  @Named("AuditCompanion")
+  @Named(AuditCompanion.name)
   def provideAuditCompanionRef(@Inject() system: ActorSystem): ActorRef = provideActorRef(system, AuditCompanion.name)
 
   @Provides

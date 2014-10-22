@@ -7,7 +7,7 @@ import com.google.inject.{BindingAnnotation, Inject}
 import scala.annotation.StaticAnnotation
 
 object AuditCompanion extends NamedActor {
-  override def name: String = "AuditCompanion"
+  override final val name = "AuditCompanion"
 }
 
 class AuditCompanion @Inject() (@Audit auditBus: ActorRef) extends Actor {
@@ -20,7 +20,7 @@ class AuditCompanion @Inject() (@Audit auditBus: ActorRef) extends Actor {
 }
 
 object AuditBus extends NamedActor {
-  override def name: String = "AuditBus"
+  override final val name = "AuditBus"
 
   case class AuditEvent(auditCompanionCreated: Long, msg: Any)
 }

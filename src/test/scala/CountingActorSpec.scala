@@ -11,7 +11,7 @@ import net.codingwell.scalaguice.InjectorExtensions._
 import net.codingwell.scalaguice.ScalaModule
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import sample.CountingActor.{Count, Get}
-import sample.{AuditModule, CountingActor, CountingService, SampleModule}
+import sample._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -81,7 +81,7 @@ class CountingActorSpec(_system: ActorSystem) extends TestKit(_system) with Impl
       initInjector(new AbstractModule with ScalaModule {
         override def configure() {}
         @Provides
-        @Named("AuditCompanion")
+        @Named(AuditCompanion.name)
         def provideActorRef(@Inject() system: ActorSystem): ActorRef = auditCompanionProbe.ref
       })
 
