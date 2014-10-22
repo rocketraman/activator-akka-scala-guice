@@ -38,3 +38,12 @@ object GuiceAkkaExtension extends ExtensionId[GuiceAkkaExtensionImpl] with Exten
 trait NamedActor {
   def name: String
 }
+
+/**
+ * Mix in with Guice Modules that contain providers for top-level actor refs.
+ */
+trait GuiceAkkaActorRefProvider {
+  def provideActorRef(system: ActorSystem, name: String): ActorRef = {
+    system.actorOf(GuiceAkkaExtension(system).props(name))
+  }
+}

@@ -2,10 +2,10 @@ package sample
 
 import javax.inject.Inject
 
-import akka.actor.{ActorRef, ActorSystem, Actor}
-import akkaguice.GuiceAkkaExtension
-import com.google.inject.{Singleton, Provides, AbstractModule}
+import akka.actor.{Actor, ActorRef, ActorSystem}
+import akkaguice.GuiceAkkaActorRefProvider
 import com.google.inject.name.{Named, Names}
+import com.google.inject.{AbstractModule, Provides, Singleton}
 import net.codingwell.scalaguice.ScalaModule
 
 /**
@@ -14,7 +14,7 @@ import net.codingwell.scalaguice.ScalaModule
  * This module provides top level actors for wiring into other actor constructors. Top level actors should be
  * used sparingly and only to wire-up few top-level components.
  */
-class AuditModule extends AbstractModule with ScalaModule {
+class AuditModule extends AbstractModule with ScalaModule with GuiceAkkaActorRefProvider {
   override def configure() {
     bind[Actor].annotatedWith(Names.named(AuditCompanion.name)).to[AuditCompanion]
     bind[Actor].annotatedWith(Names.named(AuditBus.name)).to[AuditBus]
@@ -28,9 +28,5 @@ class AuditModule extends AbstractModule with ScalaModule {
   @Singleton
   @Audit
   def provideAuditBusRef(@Inject() system: ActorSystem): ActorRef = provideActorRef(system, AuditBus.name)
-
-  private def provideActorRef(system: ActorSystem, name: String): ActorRef = {
-    system.actorOf(GuiceAkkaExtension(system).props(name))
-  }
 
 }
