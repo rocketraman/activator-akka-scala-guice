@@ -43,7 +43,6 @@ trait NamedActor {
  * Mix in with Guice Modules that contain providers for top-level actor refs.
  */
 trait GuiceAkkaActorRefProvider {
-  def provideActorRef(system: ActorSystem, name: String): ActorRef = {
-    system.actorOf(GuiceAkkaExtension(system).props(name))
-  }
+  def propsFor(system: ActorSystem, name: String) = GuiceAkkaExtension(system).props(name)
+  def provideActorRef(system: ActorSystem, name: String): ActorRef = system.actorOf(propsFor(system, name))
 }
